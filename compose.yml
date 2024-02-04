@@ -1,0 +1,79 @@
+version: '3.8'
+services:
+  nginx:
+    container_name: proxy
+    hostname: proxy
+    domainname: site.local
+    image: nginx:v1
+    build:
+      context: ./nginx
+      dockerfile: dockerfiles/nginx
+    networks:
+      - front_sw
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - api
+      - db
+    restart: unless-stopped
+    user: "${PROXY_USER_UID}:${PROXY_USER_GID}"
+    env_file: .env
+
+  api:
+    container_name: api
+    hostname: api
+    domainname: site.local
+    image: api:v1
+    build:
+      context: ./api
+      dockerfile: Dockerfiles/api
+    networks:
+      - front_sw
+      - back_sw
+    volumes:
+      - ./api:/var/www/api
+    depends_on:
+      - db
+    restart: unless-stopped
+    user: "${API_USER_UID}:${API_USER_GID}"
+    env_file: .env
+
+  db:
+    container_name: db
+    hostname: db
+    domainname: site.local
+    image: mysql:v1
+    build:
+      context: ./db
+      dockerfile: Dockerfiles/db
+    networks:
+      - back_sw
+    volumes:
+      - ./db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_USER}"
+    restart: unless-stopped
+    user: "${DB_USER_UID}:${DB_USER_GID}"
+    env_file: .env
+
+networks:
+  front_sw:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${FRONT_DOCKER_SUBNET}
+    
+  back_sw:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${BACK_DOCKER_SUBNET}

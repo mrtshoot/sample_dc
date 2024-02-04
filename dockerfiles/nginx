@@ -1,0 +1,4 @@
+FROM nginx:alpine
+COPY --chown=www-data:www-data ./conf.d/* /etc/nginx/conf.d/
+COPY --chown=www-data:www-data ./ssl/* /etc/ssl/
+CMD [ "nginx", "-g", "daemon off;"]
